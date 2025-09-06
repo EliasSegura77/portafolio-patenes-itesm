@@ -48,6 +48,19 @@
             padding: 0 20px;
         }
 
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 15px;
+        }
+
+        .logo {
+            height: 60px;
+            width: auto;
+        }
+
         header h1 {
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
@@ -93,6 +106,15 @@
             text-align: center;
             color: var(--medium-gray);
             font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .language-note {
+            text-align: center;
+            color: var(--accent-blue);
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-bottom: 1rem;
         }
 
         .stats-container {
@@ -146,7 +168,7 @@
             transition: var(--transition);
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: auto;
         }
 
         .patent:hover {
@@ -175,8 +197,17 @@
         .patent .abstract {
             color: var(--dark-gray);
             line-height: 1.5;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .patent .abstract.short {
+            max-height: 4.5em;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .patent .read-more {
@@ -185,6 +216,8 @@
             font-weight: 600;
             display: inline-flex;
             align-items: center;
+            cursor: pointer;
+            margin-top: auto;
         }
 
         .patent .read-more:hover {
@@ -194,6 +227,11 @@
         .patent .read-more i {
             margin-left: 5px;
             font-size: 0.9rem;
+            transition: transform 0.3s ease;
+        }
+
+        .patent .read-more.expanded i {
+            transform: rotate(180deg);
         }
 
         footer {
@@ -288,6 +326,10 @@
                 flex-direction: column;
                 gap: 20px;
             }
+
+            .logo-container {
+                flex-direction: column;
+            }
         }
 
         @keyframes fadeIn {
@@ -335,6 +377,9 @@
 <body>
     <header>
         <div class="header-content">
+            <div class="logo-container">
+                <img src="https://www.tec.mx/themes/custom/tec_theme/logo.png" alt="Logo ITESM" class="logo">
+            </div>
             <h1>Portafolio de Patentes ITESM</h1>
             <p>Innovación tecnológica con impacto global - Descubre nuestras tecnologías disponibles para licenciamiento</p>
         </div>
@@ -343,11 +388,12 @@
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="Buscar patentes por título, inventor, tecnología...">
         <div class="search-info">Escriba al menos 3 caracteres para buscar en títulos, inventores y resúmenes</div>
+        <div class="language-note">Nota: Las patentes están en inglés pero la búsqueda funciona en ambos idiomas</div>
     </div>
 
     <div class="stats-container">
         <div class="stat-item">
-            <div class="stat-number">359</div>
+            <div class="stat-number">358</div>
             <div class="stat-label">Patentes Activas</div>
         </div>
         <div class="stat-item">
@@ -365,7 +411,7 @@
             <div class="loading">
                 <i class="fas fa-spinner"></i>
                 <h3>Cargando patentes...</h3>
-                <p>Por favor espere mientras se cargan las 359 patentes</p>
+                <p>Por favor espere mientras se cargan las 358 patentes</p>
             </div>
         </div>
     </main>
@@ -508,15 +554,57 @@
             patents.forEach(patent => {
                 const patentElement = document.createElement('div');
                 patentElement.className = 'patent';
+                
+                // Guardar el abstract completo para la funcionalidad de expandir
+                patentElement.dataset.fullAbstract = patent.abstract;
+                
+                // Limitar la longitud del abstract para visualización inicial
+                const shortAbstract = patent.abstract.length > 200 ? 
+                    patent.abstract.substring(0, 200) + '...' : patent.abstract;
+                
                 patentElement.innerHTML = `
                     <div class="patent-header">
                         <h2>${patent.title}</h2>
                         <div class="inventors"><i class="fas fa-users"></i> ${patent.inventors}</div>
                     </div>
-                    <div class="abstract">${patent.abstract}</div>
-                    <a href="#" class="read-more">Más información <i class="fas fa-arrow-right"></i></a>
+                    <div class="abstract short">${shortAbstract}</div>
+                    ${patent.abstract.length > 200 ? 
+                        '<a href="#" class="read-more">Leer más <i class="fas fa-arrow-down"></i></a>' : 
+                        '<a href="#" class="read-more">Más información <i class="fas fa-arrow-right"></i></a>'}
                 `;
+                
                 patentsList.appendChild(patentElement);
+            });
+            
+            // Configurar los eventos para expandir/contraer abstracts
+            setupAbstractToggles();
+        }
+
+        // Función para configurar la funcionalidad de expandir/contraer abstracts
+        function setupAbstractToggles() {
+            document.querySelectorAll('.read-more').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const patent = this.closest('.patent');
+                    const abstract = patent.querySelector('.abstract');
+                    const fullAbstract = patent.dataset.fullAbstract;
+                    
+                    if (abstract.classList.contains('short')) {
+                        // Expandir
+                        abstract.textContent = fullAbstract;
+                        abstract.classList.remove('short');
+                        this.innerHTML = 'Leer menos <i class="fas fa-arrow-up"></i>';
+                        this.classList.add('expanded');
+                    } else {
+                        // Contraer
+                        const shortAbstract = fullAbstract.length > 200 ? 
+                            fullAbstract.substring(0, 200) + '...' : fullAbstract;
+                        abstract.textContent = shortAbstract;
+                        abstract.classList.add('short');
+                        this.innerHTML = 'Leer más <i class="fas fa-arrow-down"></i>';
+                        this.classList.remove('expanded');
+                    }
+                });
             });
         }
 
@@ -538,10 +626,44 @@
             displayPatents(filteredPatents);
         }
 
+        // Función para actualizar desde Lens API (para implementación futura)
+        async function updateFromLensAPI() {
+            try {
+                const response = await fetch('https://api.lens.org/patent/search', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer SU_TOKEN_AQUI', // Reemplazar con token real
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: {
+                            terms: {
+                                applicant: "Tecnológico de Monterrey",
+                                owner: "Tecnológico de Monterrey"
+                            }
+                        },
+                        size: 1000,
+                        include: ["title", "abstract", "inventors"]
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("Datos actualizados desde Lens API", data);
+                    // Aquí procesaríamos los datos y actualizaríamos la interfaz
+                }
+            } catch (error) {
+                console.error("Error actualizando desde API:", error);
+            }
+        }
+
         // Inicializar la visualización con datos reales
         document.addEventListener('DOMContentLoaded', () => {
             loadCSVData();
             document.getElementById('searchInput').addEventListener('input', searchPatents);
+            
+            // Configurar actualización automática mensual (una vez que tenga el token)
+            // setInterval(updateFromLensAPI, 30 * 24 * 60 * 60 * 1000);
         });
 
         // Efecto de escritura en el placeholder
