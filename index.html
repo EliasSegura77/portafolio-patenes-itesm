@@ -311,6 +311,25 @@
             margin-bottom: 15px;
             color: #ccc;
         }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            grid-column: 1 / -1;
+            color: var(--medium-gray);
+        }
+
+        .loading i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--accent-blue);
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -328,7 +347,7 @@
 
     <div class="stats-container">
         <div class="stat-item">
-            <div class="stat-number">250+</div>
+            <div class="stat-number">359</div>
             <div class="stat-label">Patentes Activas</div>
         </div>
         <div class="stat-item">
@@ -343,7 +362,11 @@
 
     <main>
         <div id="patentsList">
-            <!-- Las patentes se cargarán aquí dinámicamente -->
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <h3>Cargando patentes...</h3>
+                <p>Por favor espere mientras se cargan las 359 patentes</p>
+            </div>
         </div>
     </main>
 
@@ -387,11 +410,19 @@
                 .then(csvData => {
                     const lines = csvData.split('\n').filter(line => line.trim() !== '');
                     
+                    // Detectar índices de columnas basados en encabezados
+                    const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+                    
+                    // Buscar índices de las columnas que necesitamos
+                    const titleIndex = headers.findIndex(header => header.toLowerCase().includes('title'));
+                    const inventorsIndex = headers.findIndex(header => header.toLowerCase().includes('inventor'));
+                    const abstractIndex = headers.findIndex(header => header.toLowerCase().includes('abstract'));
+                    
                     patentsData = [];
                     for (let i = 1; i < lines.length; i++) {
                         const line = lines[i].trim();
                         if (line) {
-                            // Procesamiento mejorado que maneja comillas correctamente
+                            // Procesamiento mejorado que maneja comillas y comas correctamente
                             const values = [];
                             let currentValue = '';
                             let insideQuotes = false;
@@ -410,15 +441,18 @@
                             }
                             values.push(currentValue);
                             
-                            if (values.length >= 3) {
+                            if (values.length > Math.max(titleIndex, inventorsIndex, abstractIndex)) {
                                 patentsData.push({
-                                    title: values[0].trim(),
-                                    inventors: values[1].trim(),
-                                    abstract: values[2].trim()
+                                    title: values[titleIndex] ? values[titleIndex].trim().replace(/^"|"$/g, '') : 'Sin título',
+                                    inventors: values[inventorsIndex] ? values[inventorsIndex].trim().replace(/^"|"$/g, '') : 'Inventor no especificado',
+                                    abstract: values[abstractIndex] ? values[abstractIndex].trim().replace(/^"|"$/g, '') : 'Resumen no disponible'
                                 });
                             }
                         }
                     }
+                    
+                    // Actualizar estadísticas con el número real de patentes
+                    document.querySelector('.stat-number').textContent = patentsData.length;
                     
                     // Mostrar las patentes cargadas
                     displayPatents(patentsData);
@@ -443,7 +477,15 @@
                             abstract: "Nuevos materiales fotovoltaicos que aumentan eficiencia energética en 40%"
                         }
                     ];
+                    
+                    // Actualizar estadísticas
+                    document.querySelector('.stat-number').textContent = patentsData.length;
+                    
+                    // Mostrar las patentes
                     displayPatents(patentsData);
+                    
+                    // Mostrar mensaje de error
+                    alert('Error al cargar los datos completos de patentes. Se muestran datos de ejemplo. Por favor, verifique el archivo data/patentes.csv');
                 });
         }
 
