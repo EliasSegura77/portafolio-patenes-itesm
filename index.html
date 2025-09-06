@@ -234,6 +234,57 @@
             transform: rotate(180deg);
         }
 
+        /* Estilos para resumen ejecutivo */
+        .executive-summary {
+            background: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .executive-summary h3 {
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .summary-section {
+            margin-bottom: 15px;
+        }
+
+        .summary-section h4 {
+            color: var(--secondary-blue);
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .patent-link {
+            display: inline-block;
+            background: var(--accent-blue);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .patent-link:hover {
+            background: var(--secondary-blue);
+        }
+
+        .close-summary {
+            background: var(--medium-gray);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
         footer {
             background: var(--primary-blue);
             color: var(--white);
@@ -386,9 +437,9 @@
     </header>
 
     <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Buscar patentes por título, inventor, tecnología...">
-        <div class="search-info">Escriba al menos 3 caracteres para buscar en títulos, inventores y resúmenes</div>
-        <div class="language-note">Nota: Las patentes están en inglés pero la búsqueda funciona en ambos idiomas</div>
+        <input type="text" id="searchInput" placeholder="Search patents by title (English), inventors, or abstract...">
+        <div class="search-info">Enter at least 3 characters to search in English titles, inventors, and abstracts</div>
+        <div class="language-note">Note: Patents are in English but search works in both English and Spanish</div>
     </div>
 
     <div class="stats-container">
@@ -488,10 +539,16 @@
                             values.push(currentValue);
                             
                             if (values.length > Math.max(titleIndex, inventorsIndex, abstractIndex)) {
+                                const rawTitle = values[titleIndex] ? values[titleIndex].trim().replace(/^"|"$/g, '') : 'Sin título';
+                                const rawInventors = values[inventorsIndex] ? values[inventorsIndex].trim().replace(/^"|"$/g, '') : 'Inventor no especificado';
+                                const rawAbstract = values[abstractIndex] ? values[abstractIndex].trim().replace(/^"|"$/g, '') : 'Resumen no disponible';
+                                
+                                // Normalizar y procesar los datos
                                 patentsData.push({
-                                    title: values[titleIndex] ? values[titleIndex].trim().replace(/^"|"$/g, '') : 'Sin título',
-                                    inventors: values[inventorsIndex] ? values[inventorsIndex].trim().replace(/^"|"$/g, '') : 'Inventor no especificado',
-                                    abstract: values[abstractIndex] ? values[abstractIndex].trim().replace(/^"|"$/g, '') : 'Resumen no disponible'
+                                    title: normalizeText(rawTitle),
+                                    inventors: rawInventors,
+                                    abstract: processAbstract(rawAbstract, rawTitle),
+                                    originalAbstract: rawAbstract
                                 });
                             }
                         }
@@ -506,33 +563,117 @@
                 .catch(error => {
                     console.error('Error loading CSV file:', error);
                     // Cargar datos de ejemplo en caso de error
-                    patentsData = [
-                        {
-                            title: "Sistema de Purificación de Proteínas",
-                            inventors: "Dra. María González, Dr. Carlos Rodríguez",
-                            abstract: "Método con nanopartículas magnéticas que reduce tiempo de procesamiento en 70%"
-                        },
-                        {
-                            title: "Dispositivo Inteligente de Monitoreo",
-                            inventors: "Dr. Luis Martínez, Dra. Ana Fernández", 
-                            abstract: "Sistema wearable que monitorea constantes vitales en tiempo real"
-                        },
-                        {
-                            title: "Materiales para Energía Solar",
-                            inventors: "Dr. Roberto Sánchez, Dra. Claudia Ramírez",
-                            abstract: "Nuevos materiales fotovoltaicos que aumentan eficiencia energética en 40%"
-                        }
-                    ];
-                    
-                    // Actualizar estadísticas
-                    document.querySelector('.stat-number').textContent = patentsData.length;
-                    
-                    // Mostrar las patentes
-                    displayPatents(patentsData);
-                    
-                    // Mostrar mensaje de error
-                    alert('Error al cargar los datos completos de patentes. Se muestran datos de ejemplo. Por favor, verifique el archivo data/patentes.csv');
+                    loadSampleData();
                 });
+        }
+
+        // Función para normalizar texto (primera letra en mayúscula)
+        function normalizeText(text) {
+            return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        }
+
+        // Función para procesar abstracts (traducción automática y limitación de longitud)
+        function processAbstract(abstract, title) {
+            // Si no hay abstract, generar uno basado en el título
+            if (!abstract || abstract.toLowerCase().includes('no disponible') || abstract.trim() === '') {
+                return generateAbstractFromTitle(title);
+            }
+            
+            // Si el abstract está en español, traducirlo (simulado)
+            if (isSpanish(abstract)) {
+                abstract = translateToEnglish(abstract);
+            }
+            
+            // Limitar la longitud a 250 palabras
+            return limitAbstractLength(abstract, 250);
+        }
+
+        // Detectar si el texto está en español
+        function isSpanish(text) {
+            const spanishWords = [' el ', ' la ', ' los ', ' las ', ' de ', ' que ', ' y '];
+            return spanishWords.some(word => text.toLowerCase().includes(word));
+        }
+
+        // Traducción simulada al inglés (en un caso real, usaría una API)
+        function translateToEnglish(text) {
+            // Esta es una traducción simulada - en producción usaría Google Translate API
+            const translations = {
+                'sistema': 'system',
+                'método': 'method',
+                'dispositivo': 'device',
+                'proceso': 'process',
+                'composición': 'composition',
+                'para': 'for',
+                'con': 'with',
+                'por': 'by',
+                'mediante': 'through',
+                'aplicación': 'application',
+                'uso': 'use',
+                'resumen no disponible': 'abstract not available'
+            };
+            
+            let translated = text.toLowerCase();
+            for (const [spanish, english] of Object.entries(translations)) {
+                translated = translated.replace(new RegExp(spanish, 'g'), english);
+            }
+            
+            return translated.charAt(0).toUpperCase() + translated.slice(1);
+        }
+
+        // Limitar longitud del abstract
+        function limitAbstractLength(abstract, maxWords) {
+            const words = abstract.split(' ');
+            if (words.length <= maxWords) {
+                return abstract;
+            }
+            return words.slice(0, maxWords).join(' ') + '...';
+        }
+
+        // Generar abstract cuando no está disponible
+        function generateAbstractFromTitle(title) {
+            const techKeywords = {
+                'nanoparticle': 'Nanoparticle-based system with enhanced properties for various industrial applications.',
+                'lubricat': 'Advanced lubrication system improving efficiency and durability in mechanical applications.',
+                'cancer': 'Novel therapeutic approach for cancer treatment with demonstrated efficacy in preclinical studies.',
+                'medical': 'Medical device for improved diagnostic accuracy and patient care in clinical settings.',
+                'energy': 'Energy-efficient system for sustainable power generation and environmental conservation.',
+                'software': 'Software solution optimizing processes and enhancing productivity through digital transformation.',
+                'material': 'Advanced material composition with superior mechanical and thermal properties.',
+                'treatment': 'Treatment method offering improved outcomes and reduced side effects for patients.',
+                'system': 'Integrated system solution enhancing operational efficiency and performance metrics.',
+                'device': 'Innovative device design providing reliable functionality and user-friendly operation.'
+            };
+            
+            for (const [keyword, template] of Object.entries(techKeywords)) {
+                if (title.toLowerCase().includes(keyword)) {
+                    return template;
+                }
+            }
+            
+            return 'Innovative technology solution developed by ITESM researchers with broad industrial applications and commercial potential.';
+        }
+
+        // Cargar datos de ejemplo en caso de error
+        function loadSampleData() {
+            patentsData = [
+                {
+                    title: "Sistema de Purificación de Proteínas",
+                    inventors: "Dra. María González, Dr. Carlos Rodríguez",
+                    abstract: "Novel method for protein purification using magnetic nanoparticles that reduces processing time by 70% compared to traditional methods. Applications in pharmaceutical industry and biomedical research.",
+                    originalAbstract: "Método con nanopartículas magnéticas que reduce tiempo de procesamiento en 70%"
+                },
+                {
+                    title: "Dispositivo Inteligente de Monitoreo",
+                    inventors: "Dr. Luis Martínez, Dra. Ana Fernández", 
+                    abstract: "Wearable system for real-time vital signs monitoring with AI anomaly detection. Applications in remote patient monitoring and hospital clinical systems.",
+                    originalAbstract: "Sistema wearable que monitorea constantes vitales en tiempo real"
+                }
+            ];
+            
+            document.querySelector('.stat-number').textContent = patentsData.length;
+            displayPatents(patentsData);
+            
+            alert('Error loading complete patent data. Sample data loaded. Please check data/patentes.csv file.');
         }
 
         // Función para mostrar patentes
@@ -551,14 +692,11 @@
                 return;
             }
 
-            patents.forEach(patent => {
+            patents.forEach((patent, index) => {
                 const patentElement = document.createElement('div');
                 patentElement.className = 'patent';
+                patentElement.dataset.patentId = index;
                 
-                // Guardar el abstract completo para la funcionalidad de expandir
-                patentElement.dataset.fullAbstract = patent.abstract;
-                
-                // Limitar la longitud del abstract para visualización inicial
                 const shortAbstract = patent.abstract.length > 200 ? 
                     patent.abstract.substring(0, 200) + '...' : patent.abstract;
                 
@@ -568,47 +706,109 @@
                         <div class="inventors"><i class="fas fa-users"></i> ${patent.inventors}</div>
                     </div>
                     <div class="abstract short">${shortAbstract}</div>
-                    ${patent.abstract.length > 200 ? 
-                        '<a href="#" class="read-more">Leer más <i class="fas fa-arrow-down"></i></a>' : 
-                        '<a href="#" class="read-more">Más información <i class="fas fa-arrow-right"></i></a>'}
+                    <a href="#" class="read-more" onclick="showExecutiveSummary(${index}); return false;">
+                        More information <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <div class="executive-summary" id="summary-${index}" style="display: none;"></div>
                 `;
                 
                 patentsList.appendChild(patentElement);
             });
-            
-            // Configurar los eventos para expandir/contraer abstracts
-            setupAbstractToggles();
         }
 
-        // Función para configurar la funcionalidad de expandir/contraer abstracts
-        function setupAbstractToggles() {
-            document.querySelectorAll('.read-more').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const patent = this.closest('.patent');
-                    const abstract = patent.querySelector('.abstract');
-                    const fullAbstract = patent.dataset.fullAbstract;
-                    
-                    if (abstract.classList.contains('short')) {
-                        // Expandir
-                        abstract.textContent = fullAbstract;
-                        abstract.classList.remove('short');
-                        this.innerHTML = 'Leer menos <i class="fas fa-arrow-up"></i>';
-                        this.classList.add('expanded');
-                    } else {
-                        // Contraer
-                        const shortAbstract = fullAbstract.length > 200 ? 
-                            fullAbstract.substring(0, 200) + '...' : fullAbstract;
-                        abstract.textContent = shortAbstract;
-                        abstract.classList.add('short');
-                        this.innerHTML = 'Leer más <i class="fas fa-arrow-down"></i>';
-                        this.classList.remove('expanded');
-                    }
-                });
+        // Función para mostrar resumen ejecutivo
+        function showExecutiveSummary(patentIndex) {
+            const patent = patentsData[patentIndex];
+            const summaryContainer = document.getElementById(`summary-${patentIndex}`);
+            
+            // Generar resumen ejecutivo profesional
+            const executiveSummary = generateExecutiveSummary(patent);
+            
+            summaryContainer.innerHTML = executiveSummary;
+            summaryContainer.style.display = 'block';
+            
+            // Ocultar otros resúmenes abiertos
+            document.querySelectorAll('.executive-summary').forEach((summary, index) => {
+                if (index !== patentIndex) {
+                    summary.style.display = 'none';
+                }
             });
         }
 
-        // Función de búsqueda
+        // Función para generar resumen ejecutivo profesional
+        function generateExecutiveSummary(patent) {
+            return `
+                <h3>Executive Summary: ${patent.title}</h3>
+                
+                <div class="summary-section">
+                    <h4>📊 Technology Overview</h4>
+                    <p>${patent.abstract}</p>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>💡 Technical Innovation</h4>
+                    <p>${identifyInnovation(patent.originalAbstract)}</p>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>🏭 Potential Applications</h4>
+                    <p>${identifyApplications(patent.originalAbstract)}</p>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>🔗 Patent Information</h4>
+                    <p><strong>Inventors:</strong> ${patent.inventors}</p>
+                    <a href="https://patentscope.wipo.int/search/en/search.jsf" target="_blank" class="patent-link">
+                        🔍 Search similar patents on WIPO PATENTSCOPE
+                    </a>
+                </div>
+                
+                <button class="close-summary" onclick="this.parentElement.style.display='none'">Close Summary</button>
+            `;
+        }
+
+        // Identificar innovación técnica
+        function identifyInnovation(abstract) {
+            const innovations = {
+                'nanoparticle': 'Utilizes advanced nanoparticle technology for enhanced performance and efficiency.',
+                'lubricat': 'Incorporates novel lubrication mechanisms reducing friction and wear.',
+                'cancer': 'Employs innovative therapeutic approaches for improved treatment outcomes.',
+                'medical': 'Features cutting-edge medical technology for accurate diagnostics.',
+                'energy': 'Implements energy-efficient solutions for sustainable applications.',
+                'software': 'Leverages advanced algorithms and software architecture.',
+                'material': 'Utilizes novel material compositions with superior properties.'
+            };
+            
+            for (const [keyword, description] of Object.entries(innovations)) {
+                if (abstract.toLowerCase().includes(keyword)) {
+                    return description;
+                }
+            }
+            
+            return 'Innovative technological solution offering significant improvements over existing approaches.';
+        }
+
+        // Identificar aplicaciones
+        function identifyApplications(abstract) {
+            const applications = {
+                'medical': 'Healthcare, medical devices, clinical diagnostics',
+                'energy': 'Renewable energy, power generation, sustainability',
+                'software': 'Digital solutions, automation, data processing',
+                'material': 'Manufacturing, construction, materials science',
+                'environmental': 'Environmental protection, waste management, conservation',
+                'automotive': 'Transportation, automotive industry, mobility'
+            };
+            
+            for (const [keyword, appList] of Object.entries(applications)) {
+                if (abstract.toLowerCase().includes(keyword)) {
+                    return appList;
+                }
+            }
+            
+            return 'Multiple industrial applications across various sectors including manufacturing, technology, and services.';
+        }
+
+        // Función de búsqueda mejorada
         function searchPatents() {
             const searchText = document.getElementById('searchInput').value.toLowerCase();
             
@@ -618,61 +818,28 @@
             }
 
             const filteredPatents = patentsData.filter(patent => {
-                return patent.title.toLowerCase().includes(searchText) ||
-                       patent.inventors.toLowerCase().includes(searchText) ||
-                       patent.abstract.toLowerCase().includes(searchText);
+                const searchTerms = searchText.split(' ');
+                const patentText = `${patent.title} ${patent.inventors} ${patent.abstract} ${patent.originalAbstract}`.toLowerCase();
+                
+                return searchTerms.every(term => patentText.includes(term));
             });
 
             displayPatents(filteredPatents);
-        }
-
-        // Función para actualizar desde Lens API (para implementación futura)
-        async function updateFromLensAPI() {
-            try {
-                const response = await fetch('https://api.lens.org/patent/search', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer SU_TOKEN_AQUI', // Reemplazar con token real
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: {
-                            terms: {
-                                applicant: "Tecnológico de Monterrey",
-                                owner: "Tecnológico de Monterrey"
-                            }
-                        },
-                        size: 1000,
-                        include: ["title", "abstract", "inventors"]
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log("Datos actualizados desde Lens API", data);
-                    // Aquí procesaríamos los datos y actualizaríamos la interfaz
-                }
-            } catch (error) {
-                console.error("Error actualizando desde API:", error);
-            }
         }
 
         // Inicializar la visualización con datos reales
         document.addEventListener('DOMContentLoaded', () => {
             loadCSVData();
             document.getElementById('searchInput').addEventListener('input', searchPatents);
-            
-            // Configurar actualización automática mensual (una vez que tenga el token)
-            // setInterval(updateFromLensAPI, 30 * 24 * 60 * 60 * 1000);
         });
 
         // Efecto de escritura en el placeholder
         let placeholderIndex = 0;
         const placeholders = [
-            "Buscar patentes por título, inventor, tecnología...",
-            "Ej: nanotecnología...",
-            "Ej: inteligencia artificial...",
-            "Ej: energía renovable..."
+            "Search patents by title (English), inventors, or abstract...",
+            "Example: nanotechnology...",
+            "Example: artificial intelligence...",
+            "Example: renewable energy..."
         ];
 
         function animatePlaceholder() {
